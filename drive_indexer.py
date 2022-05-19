@@ -33,12 +33,12 @@ def main():
 
     try: 
         service = build("drive", "v3", credentials=creds)
-
-
+        folder_ID = ''
+        query = f"parents = '{folder_ID}'"
         # call the Drive v3 API
         response = service.files().list(
             fields = "nextPageToken, files(name, id)",
-            q = "parents = '1wMZ113PdBJnXxpjrDmu4o7dyoR77-meT'",
+            q = query,
             ).execute()
 
         #
