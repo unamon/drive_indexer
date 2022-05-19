@@ -1,4 +1,5 @@
 import os.path
+from re import sub
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -33,20 +34,42 @@ def main():
     try: 
         service = build("drive", "v3", credentials=creds)
 
-        # call the Drive v3 API
-        results = service.files().list(
-            fields = "files(name, id)",
-            q = "'1wMZ113PdBJnXxpjrDmu4o7dyoR77-meT' in parents",
-            ).execute()
-        items = results.get("files", [])
 
-        if not items:
+        # call the Drive v3 API
+        response = service.files().list(
+            fields = "nextPageToken, files(name, id)",
+            q = "parents = '1wMZ113PdBJnXxpjrDmu4o7dyoR77-meT'",
+            ).execute()
+
+        #
+        folders = response.get("files", [])
+
+        if not folders:
             print("No files found")
             return
-        
-        print("Files:")
-        for item in items:
-            print(item)
+
+        # print(folders)
+        print("Folders:")
+        # makes a request for each folder inside the Library folder
+        for folder in folders:
+            print(folder['name'] + "----------" + folder['id'])
+            query = f"parents = '{folder['id']}'"
+
+            response = service.files().list(
+                q = query,
+                fields = "nextPageToken, files(name, parents)"
+             ).execute()
+
+            files = response.get('files')
+            nextPageToken = response.get('nextPageToken')
+
+            while nextPageToken:
+                response = service.files().list(q=query, pageToken = nextPageToken).execute()
+                files.extend(response.get(files))
+                nextPageToken = response.get("nextPageToken")
+
+            print(files)
+            
 
     except HttpError as error:
         print(f"An error occured: {error}")
