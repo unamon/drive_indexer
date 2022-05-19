@@ -52,7 +52,7 @@ def main():
         print("Folders:")
         # makes a request for each folder inside the Library folder
         for folder in folders:
-            print(folder['name'] + "----------" + folder['id'])
+            print(folder['name'])
             query = f"parents = '{folder['id']}'"
 
             response = service.files().list(
@@ -68,7 +68,8 @@ def main():
                 files.extend(response.get(files))
                 nextPageToken = response.get("nextPageToken")
 
-            print(files)
+            for file in files:
+                print(f"\t {file['name']}")
             
 
     except HttpError as error:
