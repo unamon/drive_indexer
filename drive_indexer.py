@@ -37,7 +37,7 @@ def get_books_data():
 
     try: 
         service = build("drive", "v3", credentials=creds)
-        folder_ID = '1yS6N9tXpAFN4LN03fgVMgXvO22P9WYEZ'
+        folder_ID = ''
         query = f"parents = '{folder_ID}'"
         # call the Drive v3 API
         response = service.files().list(
@@ -85,7 +85,7 @@ def get_books_data():
 
 def create_spreadsheet():
     creds = get_creds()
-    sheet_ID = '1HHBwo9ztuIvBZNV8L2tOvwkN2_iu1UNazTyCx8TNvLw'
+    sheet_ID = ''
     values = get_books_data()
     body = {
         "values":values
@@ -100,8 +100,6 @@ def create_spreadsheet():
         ).execute()
 
         print('{0} cells updated.'.format(result.get('updatedCells')))
-
-
 
 
     except HttpError as error:
