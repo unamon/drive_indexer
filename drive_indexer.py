@@ -9,15 +9,15 @@ from googleapiclient.errors import HttpError
 
 
 
-SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly', 'https://www.googleapis.com/auth/spreadsheets']
 
-
-def main():
+def get_creds():
     creds = None
     # Access and refresh tokens are stored in the file token.json. 
     # It is created automatically when auth flow completes for the first time 
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+
 
     #if there are no (valid) credentials available, the user logs in
     if not creds or not creds.valid:
@@ -29,11 +29,15 @@ def main():
         # save credentials for the next run
         with open("token.json", "w") as token:
             token.write(creds.to_json())
+    return creds
 
+def get_books_data():
+
+    creds = get_creds()
 
     try: 
         service = build("drive", "v3", credentials=creds)
-        folder_ID = ''
+        folder_ID = '1yS6N9tXpAFN4LN03fgVMgXvO22P9WYEZ'
         query = f"parents = '{folder_ID}'"
         # call the Drive v3 API
         response = service.files().list(
@@ -47,33 +51,63 @@ def main():
         if not folders:
             print("No files found")
             return
+        print("Creating values...")
+        values = [["Title", "Folder"]] # the value list will be populated by the books metadata
 
-        # print(folders)
-        print("Folders:")
         # makes a request for each folder inside the Library folder
         for folder in folders:
-            print(folder['name'])
+            
             query = f"parents = '{folder['id']}'"
 
             response = service.files().list(
                 q = query,
-                fields = "nextPageToken, files(name, parents)"
+                fields = "nextPageToken, files(name, size, parents)"
              ).execute()
 
             files = response.get('files')
             nextPageToken = response.get('nextPageToken')
 
             while nextPageToken:
-                response = service.files().list(q=query, pageToken = nextPageToken).execute()
+                response = service.files().list(q=query,
+                 
+                pageToken = nextPageToken).execute()
                 files.extend(response.get(files))
                 nextPageToken = response.get("nextPageToken")
 
             for file in files:
-                print(f"\t {file['name']}")
-            
+                name = file['name']
+                name = name.replace(".pdf", "").replace("_", " ")
+                values.append([name, str(folder['name']) ])            
+        return(values)
 
     except HttpError as error:
         print(f"An error occured: {error}")
 
+def create_spreadsheet():
+    creds = get_creds()
+    sheet_ID = '1HHBwo9ztuIvBZNV8L2tOvwkN2_iu1UNazTyCx8TNvLw'
+    values = get_books_data()
+    body = {
+        "values":values
+    }
+    try:
+        service = build('sheets', 'v4', credentials=creds)
+        result = service.spreadsheets().values().update(
+        spreadsheetId=sheet_ID,
+        body=body,
+        range = "A:B",
+        valueInputOption = "RAW"
+        ).execute()
+
+        print('{0} cells updated.'.format(result.get('updatedCells')))
+
+
+
+
+    except HttpError as error:
+        print(f"An error occurred in the sheets:{error}")
+
+
+
 if __name__ == "__main__":
-    main()
+    create_spreadsheet()
