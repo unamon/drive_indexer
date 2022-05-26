@@ -37,7 +37,7 @@ def get_books_data():
 
     try: 
         service = build("drive", "v3", credentials=creds)
-        folder_ID = ''
+        folder_ID = '1yS6N9tXpAFN4LN03fgVMgXvO22P9WYEZ'
         query = f"parents = '{folder_ID}'"
         # call the Drive v3 API
         response = service.files().list(
@@ -61,7 +61,7 @@ def get_books_data():
 
             response = service.files().list(
                 q = query,
-                fields = "nextPageToken, files(name, size, parents)"
+                fields = "nextPageToken, files(name, size, parents, id)"
              ).execute()
 
             files = response.get('files')
@@ -75,9 +75,10 @@ def get_books_data():
                 nextPageToken = response.get("nextPageToken")
 
             for file in files:
-                name = file['name']
-                name = name.replace(".pdf", "").replace("_", " ")
-                values.append([name, str(folder['name']) ])            
+                
+                file_link = f"=hyperlink(\"https://drive.google.com/file/d/{file['id']}\";\"{file['name']}\")"
+                # name = name.replace(".pdf", "").replace("_", " ")
+                values.append([file_link, str(folder['name'])])            
         return(values)
 
     except HttpError as error:
@@ -85,7 +86,7 @@ def get_books_data():
 
 def create_spreadsheet():
     creds = get_creds()
-    sheet_ID = ''
+    sheet_ID = '1HHBwo9ztuIvBZNV8L2tOvwkN2_iu1UNazTyCx8TNvLw'
     values = get_books_data()
     body = {
         "values":values
@@ -96,7 +97,7 @@ def create_spreadsheet():
         spreadsheetId=sheet_ID,
         body=body,
         range = "A:B",
-        valueInputOption = "RAW"
+        valueInputOption = "USER_ENTERED"
         ).execute()
 
         print('{0} cells updated.'.format(result.get('updatedCells')))
